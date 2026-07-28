@@ -8,7 +8,7 @@ cask "vphone-cli" do
   desc "Boot a virtual iPhone via Apple's Virtualization.framework"
   homepage "https://github.com/Lakr233/vphone-cli"
 
-  depends_on macos: ">= :sequoia" # macOS 15+
+  depends_on macos: :sequoia # macOS 15+
 
   # Install the .app bundle, and expose its inner CLI on the PATH so
   # `vphone-cli` works from the terminal.
