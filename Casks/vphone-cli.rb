@@ -1,6 +1,6 @@
 cask "vphone-cli" do
-  version "1.0.1"
-  sha256 "97bfc8d193dbf4fcad6e15754e1a985b16672e9403fd13f3d7bbed4a4d1f1793"
+  version "1.0.2"
+  sha256 "77b0ca34f589788ac88c6b8a22a1987f771d5d255d6c59039634280f24a1a4b1"
 
   url "https://github.com/Lakr233/vphone-cli/releases/download/#{version}/vphone-cli-#{version}.zip",
       verified: "github.com/Lakr233/vphone-cli/"
@@ -10,10 +10,12 @@ cask "vphone-cli" do
 
   depends_on macos: :sequoia # macOS 15+
 
-  # Install the .app bundle, and expose its inner CLI on the PATH so
-  # `vphone-cli` works from the terminal.
+  # Install the .app bundle, and expose its inner CLI + the amfid allowlist
+  # helper on the PATH so `vphone-cli` and `vphone-amfidont` work from the
+  # terminal.
   app "vphone-cli.app"
   binary "#{appdir}/vphone-cli.app/Contents/MacOS/vphone-cli"
+  binary "#{appdir}/vphone-cli.app/Contents/Resources/vphone-amfidont"
 
   zap trash: "~/.vphone"
 
@@ -32,8 +34,8 @@ cask "vphone-cli" do
          sudo nvram boot-args="amfi_get_out_of_my_way=1 -v"   # reboot after
          # B (minimal):
          csrutil enable --without debug && csrutil allow-research-guests enable
-         #   then allowlist the binary with amfidont/amfree:
-         sudo amfidont --path "$(readlink -f "$(command -v vphone-cli)")"
+         #   then allowlist the app through amfid (installs amfidont if needed):
+         vphone-amfidont
 
     On first use, vphone-cli provisions its own Python env at ~/.vphone/venv
     from a modern host python3 (3.11+); VMs live under ~/.vphone/VMs.
