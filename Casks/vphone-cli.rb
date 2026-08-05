@@ -1,6 +1,6 @@
 cask "vphone-cli" do
-  version "1.0.4"
-  sha256 "63960fd52569fd8496d20864d037e9477aab9fd408191a13b28cf0e329a1cb49"
+  version "1.0.5"
+  sha256 "da59eb37fd62fdbb454208c41d94d871205ab36b68c6d59382d99ebf5f4847d1"
 
   url "https://github.com/Lakr233/vphone-cli/releases/download/#{version}/vphone-cli-#{version}.zip",
       verified: "github.com/Lakr233/vphone-cli/"
@@ -14,6 +14,7 @@ cask "vphone-cli" do
   # third-party build (ipsw in blacktop/tap, sshpass in hudochenkov/sshpass).
   depends_on formula: [
     "homebrew/core/aria2",
+    "homebrew/core/cmake",
     "homebrew/core/gnu-tar",
     "homebrew/core/ipsw",
     "homebrew/core/keystone",
