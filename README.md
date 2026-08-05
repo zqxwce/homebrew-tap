@@ -12,8 +12,11 @@ brew install zqxwce/tap/vphone-cli
 ```
 
 This installs `vphone-cli.app` and puts the `vphone-cli` command on your PATH.
-The tool requires SIP/AMFI relaxed and a few extra tools — see the cask caveats
-(shown on install) and the [project README](https://github.com/Lakr233/vphone-cli).
+The runtime tools it shells out to (`ipsw`, `gtar`, `ldid`, `zstd`, `aria2c`,
+`sshpass`, `keystone`, …) are declared as cask dependencies, so Homebrew installs
+them automatically. Relaxing SIP/AMFI is still a manual step — see the cask
+caveats (shown on install) and the
+[project README](https://github.com/Lakr233/vphone-cli).
 
 ## vphone-ws
 

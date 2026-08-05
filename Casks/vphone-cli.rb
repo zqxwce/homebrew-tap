@@ -9,6 +9,22 @@ cask "vphone-cli" do
   homepage "https://github.com/Lakr233/vphone-cli"
 
   depends_on macos: :sequoia # macOS 15+
+  # Tap-qualified deliberately: a bare name makes Formulary.resolve load the
+  # installed keg's own tap, which aborts the install for anyone holding a
+  # third-party build (ipsw in blacktop/tap, sshpass in hudochenkov/sshpass).
+  depends_on formula: [
+    "homebrew/core/aria2",
+    "homebrew/core/gnu-tar",
+    "homebrew/core/ipsw",
+    "homebrew/core/keystone",
+    "homebrew/core/ldid-procursus",
+    "homebrew/core/libusb",
+    "homebrew/core/openssl@3",
+    "homebrew/core/python@3.13",
+    "homebrew/core/sshpass",
+    "homebrew/core/wget",
+    "homebrew/core/zstd",
+  ]
 
   # Install the .app bundle, and expose its inner CLI + the amfid allowlist
   # helper on the PATH so `vphone-cli` and `vphone-amfidont` work from the
@@ -20,14 +36,11 @@ cask "vphone-cli" do
   zap trash: "~/.vphone"
 
   caveats <<~EOS
-    vphone-cli boots a Virtualization.framework guest with private PV=3
-    entitlements, so the host needs some one-time setup:
+    The runtime tools are installed for you as cask dependencies. vphone-cli
+    boots a Virtualization.framework guest with private PV=3 entitlements, so
+    one manual step is still required:
 
-    1. Runtime tools (Homebrew — some come from third-party taps):
-         brew install python@3.13 aria2 wget gnu-tar openssl@3 \\
-           ldid-procursus sshpass keystone libusb ipsw zstd
-
-    2. Relax SIP/AMFI in Recovery — pick ONE path (the two settings pair up):
+    Relax SIP/AMFI in Recovery — pick ONE path (the two settings pair up):
          # A (most permissive):
          csrutil disable && csrutil allow-research-guests enable
          #   then, back in macOS:
