@@ -34,6 +34,17 @@ cask "vphone-cli" do
   binary "#{appdir}/vphone-cli.app/Contents/MacOS/vphone-cli"
   binary "#{appdir}/vphone-cli.app/Contents/Resources/vphone-amfidont"
 
+  # The app is ad-hoc signed (not notarized), so a quarantined launch hits the
+  # "damaged" Gatekeeper wall. `--no-quarantine` was removed from Homebrew, so
+  # strip the flag here instead. Use the absolute Apple xattr — a shadowing
+  # `xattr` without `-r` may be earlier on PATH. Non-fatal: never block install.
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args:         ["-r", "-d", "com.apple.quarantine", "#{appdir}/vphone-cli.app"],
+                   must_succeed: false,
+                   print_stderr: false
+  end
+
   zap trash: "~/.vphone"
 
   caveats <<~EOS
@@ -55,8 +66,8 @@ cask "vphone-cli" do
     from a modern host python3 (3.11+); VMs live under ~/.vphone/VMs.
     Run `vphone-cli setup` to provision up front.
 
-    The app is ad-hoc signed. If Gatekeeper blocks it, reinstall with:
-         brew install --cask --no-quarantine vphone-cli
+    The app is ad-hoc signed (not notarized); this cask clears its quarantine
+    flag on install so it opens without the "damaged" Gatekeeper prompt.
 
     Full guide: https://github.com/Lakr233/vphone-cli
   EOS
