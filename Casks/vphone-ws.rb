@@ -1,6 +1,6 @@
 cask "vphone-ws" do
-  version "0.0.1"
-  sha256 "36d67ed87c8d48242ae7519ccad6f26f9bc51aaecd0466b00ef8540228fa8599"
+  version "0.0.2"
+  sha256 "f5f4ad8b8f8a3a4e084fe01135db3b28cfe113f8589de20dc742bde339d3519d"
 
   # Release tags are prefixed with "v"; the asset filename uses the bare version.
   url "https://github.com/zqxwce/vphone-ws/releases/download/v#{version}/vphone-ws-#{version}.zip",
