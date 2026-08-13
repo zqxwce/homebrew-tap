@@ -1,6 +1,6 @@
 cask "vphone-cli" do
-  version "1.0.7"
-  sha256 "4f70b8468f5dfa2e3625f564ed98f1a084a83501db11ca8acf6fce696c5d3f65"
+  version "1.0.8"
+  sha256 "5565a0064b5a9aaebdc215a45affd029a70fa961652ea09bcc322b22ba130fa6"
 
   url "https://github.com/Lakr233/vphone-cli/releases/download/#{version}/vphone-cli-#{version}.zip",
       verified: "github.com/Lakr233/vphone-cli/"
