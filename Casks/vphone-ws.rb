@@ -3,8 +3,7 @@ cask "vphone-ws" do
   sha256 "35653872df950381b84193f920e11bf69ac56e7d56d90fb8fc91ece82871d032"
 
   # Release tags are prefixed with "v"; the asset filename uses the bare version.
-  url "https://github.com/zqxwce/vphone-ws/releases/download/v#{version}/vphone-ws-#{version}.zip",
-      verified: "github.com/zqxwce/vphone-ws/"
+  url "https://github.com/zqxwce/vphone-ws/releases/download/v#{version}/vphone-ws-#{version}.zip"
   name "vPhone Workstation"
   desc "Browse, create, and boot virtual iPhones from a single window"
   homepage "https://github.com/zqxwce/vphone-ws"
@@ -19,11 +18,11 @@ cask "vphone-ws" do
   # "damaged" Gatekeeper wall. `--no-quarantine` was removed from Homebrew, so
   # strip the flag here instead. Use the absolute Apple xattr — a shadowing
   # `xattr` without `-r` may be earlier on PATH. Non-fatal: never block install.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args:         ["-r", "-d", "com.apple.quarantine", "#{appdir}/vphone-ws.app"],
-                   must_succeed: false,
-                   print_stderr: false
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args:         ["-r", "-d", "com.apple.quarantine", "{{appdir}}/vphone-ws.app"],
+        must_succeed: false,
+        print_stderr: false
   end
 
   zap trash: [
