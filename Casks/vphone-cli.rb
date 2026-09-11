@@ -2,8 +2,7 @@ cask "vphone-cli" do
   version "1.0.14"
   sha256 "5d851835f1ae3d4449601deae5dcb60b3d29620ac549daf6ce2f735009f4bb13"
 
-  url "https://github.com/Lakr233/vphone-cli/releases/download/#{version}/vphone-cli-#{version}.zip",
-      verified: "github.com/Lakr233/vphone-cli/"
+  url "https://github.com/Lakr233/vphone-cli/releases/download/#{version}/vphone-cli-#{version}.zip"
   name "vphone-cli"
   desc "Boot a virtual iPhone via Apple's Virtualization.framework"
   homepage "https://github.com/Lakr233/vphone-cli"
@@ -38,11 +37,11 @@ cask "vphone-cli" do
   # "damaged" Gatekeeper wall. `--no-quarantine` was removed from Homebrew, so
   # strip the flag here instead. Use the absolute Apple xattr — a shadowing
   # `xattr` without `-r` may be earlier on PATH. Non-fatal: never block install.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args:         ["-r", "-d", "com.apple.quarantine", "#{appdir}/vphone-cli.app"],
-                   must_succeed: false,
-                   print_stderr: false
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args:         ["-r", "-d", "com.apple.quarantine", "{{appdir}}/vphone-cli.app"],
+        must_succeed: false,
+        print_stderr: false
   end
 
   zap trash: "~/.vphone"
