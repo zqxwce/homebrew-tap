@@ -17,8 +17,8 @@ one; a non-notarized build will not open), together with the newest
 `VPhone.bundle` of the same major version, which it installs into Launchpad's
 bundle store as the default. Upgrading adds newer bundles and keeps the old
 ones. It also puts `vphone-launchpad-cli` on your PATH.
-Host Setup (Developer Tools access, the helper) is still done in the app on
-first launch.
+The cask also installs Launchpad's privileged helper; granting Developer Tools
+access in Host Setup is still done in the app on first launch.
 
 ## vphone-cli
 
