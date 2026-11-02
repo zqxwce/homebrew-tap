@@ -3,20 +3,45 @@
 Homebrew tap for the vPhone tools — boot and manage virtual iPhones via Apple's
 Virtualization.framework.
 
+## vphone-launchpad
+
+[Launchpad](https://github.com/Lakr233/vphone-cli) — the macOS app that creates,
+manages and runs virtual iPhones.
+
+```bash
+brew install zqxwce/tap/vphone-launchpad
+```
+
+The cask tracks the newest **notarized** Launchpad (not every release ships
+one; a non-notarized build will not open), together with the newest
+`VPhone.bundle` of the same major version, which it installs into Launchpad's
+bundle store as the default. Upgrading adds newer bundles and keeps the old
+ones. It also puts `vphone-launchpad-cli` on your PATH.
+Host Setup (Developer Tools access, the helper) is still done in the app on
+first launch.
+
 ## vphone-cli
 
-[`vphone-cli`](https://github.com/Lakr233/vphone-cli) — the command-line tool.
+`VPhone.bundle` — the core bundle that Launchpad drives, for terminal use.
 
 ```bash
 brew install zqxwce/tap/vphone-cli
 ```
 
-This installs `vphone-cli.app` and puts the `vphone-cli` command on your PATH.
-The runtime tools it shells out to (`ipsw`, `gtar`, `ldid`, `zstd`, `aria2c`,
-`sshpass`, `keystone`, …) are declared as cask dependencies, so Homebrew installs
-them automatically. Relaxing SIP/AMFI is still a manual step — see the cask
-caveats (shown on install) and the
-[project README](https://github.com/Lakr233/vphone-cli).
+The bundle stays in the Caskroom; `vphone-cli`, `vphone-vm` and
+`vphone-escalator` from its `Contents/MacOS/` are linked onto your PATH.
+Relaxing SIP/AMFI is a manual step — see the cask caveats and the
+[host setup guide](https://github.com/Lakr233/vphone-cli/blob/main/Documents/Guides/host-setup.md).
+
+## vphone-cli-legacy
+
+The 1.x `vphone-cli.app` (1.0.14). VMs created by 1.x do not start in 2.x.
+
+```bash
+brew install zqxwce/tap/vphone-cli-legacy
+```
+
+It conflicts with `vphone-cli` (both provide the `vphone-cli` command).
 
 ## vphone-ws
 
@@ -27,8 +52,8 @@ native macOS GUI front-end for `vphone-cli`.
 brew install zqxwce/tap/vphone-ws
 ```
 
-It depends on `vphone-cli`, so Homebrew installs that automatically as part of
-the same command.
+It depends on `vphone-cli-legacy`, so Homebrew installs that automatically as
+part of the same command.
 
 > **Note — Apple quarantine.** The app is ad-hoc signed (not notarized), so under
 > Homebrew's quarantine flag macOS refuses to open it with the "'vphone-ws.app'

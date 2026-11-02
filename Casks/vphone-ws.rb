@@ -11,7 +11,7 @@ cask "vphone-ws" do
 
   depends_on macos: :sequoia # macOS 15+
   # GUI front-end for vphone-cli; installing vphone-ws pulls it in automatically.
-  depends_on cask: "zqxwce/tap/vphone-cli"
+  depends_on cask: "zqxwce/tap/vphone-cli-legacy"
 
   app "vphone-ws.app"
 
@@ -38,7 +38,7 @@ cask "vphone-ws" do
     vphone-ws is the GUI front-end for vphone-cli, which Homebrew installs
     automatically as a dependency. Complete vphone-cli's one-time host setup
     (SIP/AMFI relaxation, runtime tools) before creating VMs — see its caveats:
-         brew info vphone-cli
+         brew info vphone-cli-legacy
 
     The app is ad-hoc signed (not notarized); this cask clears its quarantine
     flag on install so it opens without the "damaged" Gatekeeper prompt.

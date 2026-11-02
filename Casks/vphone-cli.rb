@@ -1,74 +1,61 @@
 cask "vphone-cli" do
-  version "1.0.14"
-  sha256 "5d851835f1ae3d4449601deae5dcb60b3d29620ac549daf6ce2f735009f4bb13"
+  version "2.14.2"
+  sha256 "80212fc06b9d2269d8ed76ac12ed09c5bc9f44b88a53dec905e5ed5fcd428923"
 
-  url "https://github.com/Lakr233/vphone-cli/releases/download/#{version}/vphone-cli-#{version}.zip",
-      verified: "github.com/Lakr233/vphone-cli/"
-  name "vphone-cli"
-  desc "Boot a virtual iPhone via Apple's Virtualization.framework"
+  url "https://github.com/Lakr233/vphone-cli/releases/download/#{version}/VPhone-#{version}.zip"
+  name "VPhone.bundle"
+  desc "Core bundle for booting virtual iPhones: vphone-cli, vphone-vm, vphone-escalator"
   homepage "https://github.com/Lakr233/vphone-cli"
 
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  conflicts_with cask: "zqxwce/tap/vphone-cli-legacy"
+  depends_on arch: :arm64
   depends_on macos: :sequoia # macOS 15+
-  # Tap-qualified deliberately: a bare name makes Formulary.resolve load the
-  # installed keg's own tap, which aborts the install for anyone holding a
-  # third-party build (ipsw in blacktop/tap, sshpass in hudochenkov/sshpass).
-  depends_on formula: [
-    "homebrew/core/aria2",
-    "homebrew/core/cmake",
-    "homebrew/core/gnu-tar",
-    "homebrew/core/ipsw",
-    "homebrew/core/keystone",
-    "homebrew/core/ldid-procursus",
-    "homebrew/core/libusb",
-    "homebrew/core/openssl@3",
-    "homebrew/core/python@3.13",
-    "homebrew/core/sshpass",
-    "homebrew/core/wget",
-    "homebrew/core/zstd",
-  ]
 
-  # Install the .app bundle, and expose its inner CLI + the amfid allowlist
-  # helper on the PATH so `vphone-cli` and `vphone-amfidont` work from the
-  # terminal.
-  app "vphone-cli.app"
-  binary "#{appdir}/vphone-cli.app/Contents/MacOS/vphone-cli"
-  binary "#{appdir}/vphone-cli.app/Contents/Resources/vphone-amfidont"
+  # VPhone.bundle is not an app, so it stays in the Caskroom; only its
+  # executables are linked onto the PATH. They resolve their frameworks and
+  # resources through the symlink, so the bundle must stay intact.
+  binary "VPhone.bundle/Contents/MacOS/vphone-cli"
+  binary "VPhone.bundle/Contents/MacOS/vphone-escalator"
+  binary "VPhone.bundle/Contents/MacOS/vphone-vm"
 
-  # The app is ad-hoc signed (not notarized), so a quarantined launch hits the
-  # "damaged" Gatekeeper wall. `--no-quarantine` was removed from Homebrew, so
-  # strip the flag here instead. Use the absolute Apple xattr — a shadowing
-  # `xattr` without `-r` may be earlier on PATH. Non-fatal: never block install.
+  # The bundle is ad-hoc signed (not notarized), so quarantined executables are
+  # refused by Gatekeeper. Use the absolute Apple xattr — a shadowing `xattr`
+  # without `-r` may be earlier on PATH. Non-fatal: never block install.
   postflight do
     system_command "/usr/bin/xattr",
-                   args:         ["-r", "-d", "com.apple.quarantine", "#{appdir}/vphone-cli.app"],
+                   args:         ["-r", "-d", "com.apple.quarantine", "#{staged_path}/VPhone.bundle"],
                    must_succeed: false,
                    print_stderr: false
   end
 
-  zap trash: "~/.vphone"
+  zap trash: [
+    "~/.vphone",
+    "~/Library/Preferences/com.vphone.bundle.plist",
+  ]
 
   caveats <<~EOS
-    The runtime tools are installed for you as cask dependencies. vphone-cli
-    boots a Virtualization.framework guest with private PV=3 entitlements, so
-    one manual step is still required:
+    This installs VPhone.bundle for terminal use. vphone-launchpad keeps its
+    own copies of the bundle and does not use this one.
 
-    Relax SIP/AMFI in Recovery — pick ONE path (the two settings pair up):
+    vphone-vm carries private entitlements, so the host must be relaxed in
+    Recovery first — pick ONE path (both need research guests):
          # A (most permissive):
          csrutil disable && csrutil allow-research-guests enable
          #   then, back in macOS:
          sudo nvram boot-args="amfi_get_out_of_my_way=1 -v"   # reboot after
          # B (minimal):
          csrutil enable --without debug && csrutil allow-research-guests enable
-         #   then allowlist the app through amfid (installs amfidont if needed):
-         vphone-amfidont
+         #   then allowlist this build's vphone-vm through amfid:
+         sudo vphone-escalator allow #{staged_path}/VPhone.bundle/Contents/MacOS/vphone-vm
 
-    On first use, vphone-cli provisions its own Python env at ~/.vphone/venv
-    from a modern host python3 (3.11+); VMs live under ~/.vphone/VMs.
-    Run `vphone-cli setup` to provision up front.
+    VMs created by 1.x do not start in 2.x; use vphone-cli-legacy for those.
+    VMs live under ~/.vphone.
 
-    The app is ad-hoc signed (not notarized); this cask clears its quarantine
-    flag on install so it opens without the "damaged" Gatekeeper prompt.
-
-    Full guide: https://github.com/Lakr233/vphone-cli
+    Full guide: https://github.com/Lakr233/vphone-cli/blob/main/Documents/Guides/host-setup.md
   EOS
 end
