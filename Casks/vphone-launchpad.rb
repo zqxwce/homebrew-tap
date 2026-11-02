@@ -50,18 +50,18 @@ cask "vphone-launchpad" do
       archive = staged_path/"VPhone-#{bundle_version}.zip"
       extracted = staged_path/"VPhone-#{bundle_version}"
       begin
-        system_command! "/usr/bin/curl",
-                        args: ["--fail", "--location", "--silent", "--show-error", "--output", archive,
-                               "https://github.com/Lakr233/vphone-cli/releases/download/#{bundle_version}/VPhone-#{bundle_version}.zip"]
+        system_command "/usr/bin/curl",
+                       args: ["--fail", "--location", "--silent", "--show-error", "--output", archive,
+                              "https://github.com/Lakr233/vphone-cli/releases/download/#{bundle_version}/VPhone-#{bundle_version}.zip"]
         raise "SHA-256 mismatch for #{archive.basename}" if archive.sha256 != bundle_sha256
 
-        system_command! "/usr/bin/ditto", args: ["-x", "-k", archive, extracted]
+        system_command "/usr/bin/ditto", args: ["-x", "-k", archive, extracted]
         source = extracted/"VPhone.bundle"
 
         cdhashes = %w[vphone-cli vphone-vm].to_h do |exe|
-          info = system_command!("/usr/bin/codesign",
-                                 args:         ["-dvvv", source/"Contents/MacOS"/exe],
-                                 print_stderr: false)
+          info = system_command("/usr/bin/codesign",
+                                args:         ["-dvvv", source/"Contents/MacOS"/exe],
+                                print_stderr: false)
           [exe, info.merged_output[/^CDHash=(\h+)$/, 1]]
         end
         receipt = extracted/"receipt.json"
@@ -72,17 +72,17 @@ cask "vphone-launchpad" do
           "version"     => bundle_version,
         )
 
-        system_command! "/bin/mkdir", args: ["-p", store], sudo: true
-        system_command! "/usr/bin/ditto", args: [source, store/"VPhone.bundle"], sudo: true
-        system_command! "/bin/cp", args: [receipt, store/"receipt.json"], sudo: true
-        system_command! "/usr/sbin/chown", args: ["-R", "root:wheel", store], sudo: true
+        system_command "/bin/mkdir", args: ["-p", store], sudo: true
+        system_command "/usr/bin/ditto", args: [source, store/"VPhone.bundle"], sudo: true
+        system_command "/bin/cp", args: [receipt, store/"receipt.json"], sudo: true
+        system_command "/usr/sbin/chown", args: ["-R", "root:wheel", store], sudo: true
       ensure
         FileUtils.rm_r [archive, extracted].select(&:exist?)
       end
     end
 
-    system_command! "/usr/bin/defaults",
-                    args: ["write", "com.vphone.launchpad", "VPhoneLaunchpadActiveBundleVersion", bundle_version]
+    system_command "/usr/bin/defaults",
+                   args: ["write", "com.vphone.launchpad", "VPhoneLaunchpadActiveBundleVersion", bundle_version]
   rescue => e
     opoo "Could not install VPhone.bundle into Launchpad (#{e.message.lines.first&.strip}); " \
          "install it from Core Bundle in the window instead."
