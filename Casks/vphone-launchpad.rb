@@ -37,11 +37,58 @@ cask "vphone-launchpad" do
   # sha256 of VPhone-<bundle>.zip.
   bundle_sha256 = "80212fc06b9d2269d8ed76ac12ed09c5bc9f44b88a53dec905e5ed5fcd428923"
 
-  # Install the pinned VPhone.bundle into Launchpad's root-owned bundle store,
-  # laid out as Launchpad's helper does (Bundles/<version>/VPhone.bundle plus a
-  # receipt), and make it the default. Older bundles are kept: machines stay
-  # bound to theirs. Non-fatal: never block install.
+  # Install Launchpad's privileged helper as its SMJobBless call does (the app's
+  # helper binary plus its embedded launchd plist with Program added), so Host
+  # Setup does not have to after every install and upgrade.
+  #
+  # Then install the pinned VPhone.bundle into Launchpad's root-owned bundle
+  # store, laid out as Launchpad's helper does (Bundles/<version>/VPhone.bundle
+  # plus a receipt), and make it the default. Older bundles are kept: machines
+  # stay bound to theirs. Non-fatal: never block install.
   postflight do
+    helper_label = "com.vphone.launchpad.helper"
+    helper = "/Library/PrivilegedHelperTools/#{helper_label}"
+    daemon_plist = "/Library/LaunchDaemons/#{helper_label}.plist"
+    begin
+      plist = staged_path/"#{helper_label}.plist"
+      plist.write <<~XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key>
+          <string>#{helper_label}</string>
+          <key>MachServices</key>
+          <dict>
+            <key>#{helper_label}</key>
+            <true/>
+          </dict>
+          <key>Program</key>
+          <string>#{helper}</string>
+          <key>ProgramArguments</key>
+          <array>
+            <string>#{helper}</string>
+          </array>
+        </dict>
+        </plist>
+      XML
+
+      system_command "/bin/launchctl", args: ["bootout", "system/#{helper_label}"],
+                                       sudo: true, must_succeed: false, print_stderr: false
+      system_command "/usr/bin/install",
+                     args: ["-o", "root", "-g", "wheel", "-m", "0544",
+                            "#{appdir}/vphone-launchpad.app/Contents/Library/LaunchServices/#{helper_label}", helper],
+                     sudo: true
+      system_command "/usr/bin/install", args: ["-o", "root", "-g", "wheel", "-m", "0644", plist, daemon_plist],
+                                         sudo: true
+      system_command "/bin/launchctl", args: ["bootstrap", "system", daemon_plist], sudo: true
+    rescue => e
+      opoo "Could not install Launchpad's helper (#{e.message.lines.first&.strip}); " \
+           "install it from Host Setup in the window instead."
+    ensure
+      plist&.unlink if plist&.exist?
+    end
+
     bundle_version = version.csv.second
     store = Pathname("/Library/Application Support/vphone-launchpad/Bundles")/bundle_version
     if store.exist?
@@ -102,8 +149,8 @@ cask "vphone-launchpad" do
   ]
 
   caveats <<~EOS
-    On first launch, and after every upgrade, complete Host Setup: grant
-    Developer Tools access and install the helper (upgrades remove it).
+    On first launch, grant Developer Tools access in Host Setup. This cask
+    installs Launchpad's helper itself.
 
     This cask also installs VPhone.bundle #{version.csv.second} into Launchpad and
     makes it the default. Upgrading adds newer bundles; old ones are kept, as
