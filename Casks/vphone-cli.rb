@@ -1,6 +1,6 @@
 cask "vphone-cli" do
-  version "2.14.2"
-  sha256 "80212fc06b9d2269d8ed76ac12ed09c5bc9f44b88a53dec905e5ed5fcd428923"
+  version "2.15.0"
+  sha256 "ffc0dd8124f83d116586c6c554b8f4852b9185f1d406a18ef2ebdb60fc75d426"
 
   url "https://github.com/Lakr233/vphone-cli/releases/download/#{version}/VPhone-#{version}.zip"
   name "VPhone.bundle"

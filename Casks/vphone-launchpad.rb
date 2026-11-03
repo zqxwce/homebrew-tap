@@ -2,8 +2,8 @@ cask "vphone-launchpad" do
   # "<launchpad>,<bundle>". Only notarized Launchpad builds open under
   # Gatekeeper and not every release ships one, so Launchpad is pinned to the
   # newest `-notarized` asset; the bundle is the newest release of its major.
-  version "2.14.0,2.14.2"
-  sha256 "f82da8abdab22c0a3bc22f5069efd54b46cc3b97cfd0f4b92243da0eae059d59"
+  version "2.15.0,2.15.0"
+  sha256 "952cdc5232d589159f58e41eb9060bb4631889af5b9ed451dfbfc7cddf5c231d"
 
   url "https://github.com/Lakr233/vphone-cli/releases/download/#{version.csv.first}/vphone-launchpad-#{version.csv.first}-notarized.zip"
   name "vphone Launchpad"
@@ -35,7 +35,7 @@ cask "vphone-launchpad" do
   binary "#{appdir}/vphone-launchpad.app/Contents/MacOS/vphone-launchpad-cli"
 
   # sha256 of VPhone-<bundle>.zip.
-  bundle_sha256 = "80212fc06b9d2269d8ed76ac12ed09c5bc9f44b88a53dec905e5ed5fcd428923"
+  bundle_sha256 = "ffc0dd8124f83d116586c6c554b8f4852b9185f1d406a18ef2ebdb60fc75d426"
 
   # Install Launchpad's privileged helper as its SMJobBless call does (the app's
   # helper binary plus its embedded launchd plist with Program added), so Host
