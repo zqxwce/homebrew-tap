@@ -19,11 +19,11 @@ cask "vphone-ws" do
   # "damaged" Gatekeeper wall. `--no-quarantine` was removed from Homebrew, so
   # strip the flag here instead. Use the absolute Apple xattr — a shadowing
   # `xattr` without `-r` may be earlier on PATH. Non-fatal: never block install.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args:         ["-r", "-d", "com.apple.quarantine", "#{appdir}/vphone-ws.app"],
-                   must_succeed: false,
-                   print_stderr: false
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args:         ["-r", "-d", "com.apple.quarantine", "{{appdir}}/vphone-ws.app"],
+        must_succeed: false,
+        print_stderr: false
   end
 
   zap trash: [

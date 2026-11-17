@@ -26,11 +26,11 @@ cask "vphone-cli" do
   # The bundle is ad-hoc signed (not notarized), so quarantined executables are
   # refused by Gatekeeper. Use the absolute Apple xattr — a shadowing `xattr`
   # without `-r` may be earlier on PATH. Non-fatal: never block install.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args:         ["-r", "-d", "com.apple.quarantine", "#{staged_path}/VPhone.bundle"],
-                   must_succeed: false,
-                   print_stderr: false
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args:         ["-r", "-d", "com.apple.quarantine", "{{staged_path}}/VPhone.bundle"],
+        must_succeed: false,
+        print_stderr: false
   end
 
   zap trash: [
