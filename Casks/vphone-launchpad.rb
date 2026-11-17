@@ -34,9 +34,6 @@ cask "vphone-launchpad" do
   app "vphone-launchpad.app"
   binary "#{appdir}/vphone-launchpad.app/Contents/MacOS/vphone-launchpad-cli"
 
-  # sha256 of VPhone-<bundle>.zip.
-  bundle_sha256 = "3aa6b4e97278b2fa4d0cede80569f135316310d69daf75ecd5a4ccfdd0b317e9"
-
   # Install Launchpad's privileged helper as its SMJobBless call does (the app's
   # helper binary plus its embedded launchd plist with Program added), so Host
   # Setup does not have to after every install and upgrade.
@@ -45,94 +42,110 @@ cask "vphone-launchpad" do
   # store, laid out as Launchpad's helper does (Bundles/<version>/VPhone.bundle
   # plus a receipt), and make it the default. Older bundles are kept: machines
   # stay bound to theirs. Non-fatal: never block install.
-  postflight do
-    helper_label = "com.vphone.launchpad.helper"
-    helper = "/Library/PrivilegedHelperTools/#{helper_label}"
-    daemon_plist = "/Library/LaunchDaemons/#{helper_label}.plist"
-    begin
-      plist = staged_path/"#{helper_label}.plist"
-      plist.write <<~XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
+  #
+  # Steps take literals only, so the bundle version is cut from `{{version}}`
+  # at install time. They run in Homebrew's sandbox (no network, no home
+  # directory) unless `sudo: true`, hence `network_access:`/`writable_paths:`.
+  postflight_steps do
+    write_file "com.vphone.launchpad.helper.plist", <<~XML
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>Label</key>
+        <string>com.vphone.launchpad.helper</string>
+        <key>MachServices</key>
         <dict>
-          <key>Label</key>
-          <string>#{helper_label}</string>
-          <key>MachServices</key>
-          <dict>
-            <key>#{helper_label}</key>
-            <true/>
-          </dict>
-          <key>Program</key>
-          <string>#{helper}</string>
-          <key>ProgramArguments</key>
-          <array>
-            <string>#{helper}</string>
-          </array>
+          <key>com.vphone.launchpad.helper</key>
+          <true/>
         </dict>
-        </plist>
-      XML
+        <key>Program</key>
+        <string>/Library/PrivilegedHelperTools/com.vphone.launchpad.helper</string>
+        <key>ProgramArguments</key>
+        <array>
+          <string>/Library/PrivilegedHelperTools/com.vphone.launchpad.helper</string>
+        </array>
+      </dict>
+      </plist>
+    XML
+    run "/bin/launchctl",
+        args:         ["bootout", "system/com.vphone.launchpad.helper"],
+        sudo:         true,
+        must_succeed: false,
+        print_stderr: false
+    run "/bin/sh",
+        args:         ["-ec", <<~SH, "sh", "{{appdir}}/vphone-launchpad.app", "{{staged_path}}"],
+          label=com.vphone.launchpad.helper
+          trap '[ $? -eq 0 ] || echo "Warning: Could not install the Launchpad helper;" \
+            "install it from Host Setup in the window instead." >&2' EXIT
+          /usr/bin/install -o root -g wheel -m 0544 \
+            "$1/Contents/Library/LaunchServices/$label" "/Library/PrivilegedHelperTools/$label"
+          /usr/bin/install -o root -g wheel -m 0644 "$2/$label.plist" "/Library/LaunchDaemons/$label.plist"
+          /bin/launchctl bootstrap system "/Library/LaunchDaemons/$label.plist"
+        SH
+        sudo:         true,
+        must_succeed: false
+    remove "com.vphone.launchpad.helper.plist"
 
-      system_command "/bin/launchctl", args: ["bootout", "system/#{helper_label}"],
-                                       sudo: true, must_succeed: false, print_stderr: false
-      system_command "/usr/bin/install",
-                     args: ["-o", "root", "-g", "wheel", "-m", "0544",
-                            "#{appdir}/vphone-launchpad.app/Contents/Library/LaunchServices/#{helper_label}", helper],
-                     sudo: true
-      system_command "/usr/bin/install", args: ["-o", "root", "-g", "wheel", "-m", "0644", plist, daemon_plist],
-                                         sudo: true
-      system_command "/bin/launchctl", args: ["bootstrap", "system", daemon_plist], sudo: true
-    rescue => e
-      opoo "Could not install Launchpad's helper (#{e.message.lines.first&.strip}); " \
-           "install it from Host Setup in the window instead."
-    ensure
-      plist&.unlink if plist&.exist?
+    # Fetch, verify and unpack the bundle, then write its receipt. The last
+    # argument is the sha256 of VPhone-<bundle>.zip.
+    run "/bin/sh",
+        args:           ["-ec", <<~SH, "sh", "{{version}}",
+          version="${1#*,}"
+          [ ! -e "/Library/Application Support/vphone-launchpad/Bundles/$version" ] || exit 0
+          trap '[ $? -eq 0 ] || echo "Warning: Could not fetch VPhone.bundle $version;" \
+            "install it from Core Bundle in the window instead." >&2' EXIT
+          /usr/bin/curl --fail --location --silent --show-error --output VPhone-bundle.zip \
+            "https://github.com/Lakr233/vphone-cli/releases/download/$version/VPhone-$version.zip"
+          echo "$2  VPhone-bundle.zip" | /usr/bin/shasum -a 256 -c - >/dev/null
+          /usr/bin/ditto -x -k VPhone-bundle.zip VPhone-bundle
+          cdhash() {
+            /usr/bin/codesign -dvvv "VPhone-bundle/VPhone.bundle/Contents/MacOS/$1" 2>&1 |
+              /usr/bin/sed -n 's/^CDHash=//p'
+          }
+          cli=$(cdhash vphone-cli)
+          vm=$(cdhash vphone-vm)
+          [ -n "$cli" ] && [ -n "$vm" ]
+          /bin/cat >VPhone-bundle/receipt.json <<JSON
+          {
+            "cdhashes": {
+              "vphone-cli": "$cli",
+              "vphone-vm": "$vm"
+            },
+            "installedAt": "$(/bin/date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "sha256": "$2",
+            "version": "$version"
+          }
+          JSON
+        SH
+                         "3aa6b4e97278b2fa4d0cede80569f135316310d69daf75ecd5a4ccfdd0b317e9"],
+        chdir:          ".",
+        network_access: true,
+        must_succeed:   false
+    if_path_exists "VPhone-bundle/receipt.json" do
+      run "/bin/sh",
+          args:         ["-ec", <<~SH, "sh", "{{version}}", "{{staged_path}}/VPhone-bundle"],
+            store="/Library/Application Support/vphone-launchpad/Bundles/${1#*,}"
+            trap '[ $? -eq 0 ] || echo "Warning: Could not install VPhone.bundle into Launchpad;" \
+              "install it from Core Bundle in the window instead." >&2' EXIT
+            /bin/mkdir -p "$store"
+            /usr/bin/ditto "$2/VPhone.bundle" "$store/VPhone.bundle"
+            /bin/cp "$2/receipt.json" "$store/receipt.json"
+            /usr/sbin/chown -R root:wheel "$store"
+          SH
+          sudo:         true,
+          must_succeed: false
     end
+    remove ["VPhone-bundle.zip", "VPhone-bundle"], recursive: true
 
-    bundle_version = version.csv.second
-    store = Pathname("/Library/Application Support/vphone-launchpad/Bundles")/bundle_version
-    if store.exist?
-      ohai "Launchpad already has VPhone.bundle #{bundle_version}"
-    else
-      archive = staged_path/"VPhone-#{bundle_version}.zip"
-      extracted = staged_path/"VPhone-#{bundle_version}"
-      begin
-        system_command "/usr/bin/curl",
-                       args: ["--fail", "--location", "--silent", "--show-error", "--output", archive,
-                              "https://github.com/Lakr233/vphone-cli/releases/download/#{bundle_version}/VPhone-#{bundle_version}.zip"]
-        raise "SHA-256 mismatch for #{archive.basename}" if archive.sha256 != bundle_sha256
-
-        system_command "/usr/bin/ditto", args: ["-x", "-k", archive, extracted]
-        source = extracted/"VPhone.bundle"
-
-        cdhashes = %w[vphone-cli vphone-vm].to_h do |exe|
-          info = system_command("/usr/bin/codesign",
-                                args:         ["-dvvv", source/"Contents/MacOS"/exe],
-                                print_stderr: false)
-          [exe, info.merged_output[/^CDHash=(\h+)$/, 1]]
-        end
-        receipt = extracted/"receipt.json"
-        receipt.write JSON.pretty_generate(
-          "cdhashes"    => cdhashes,
-          "installedAt" => Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
-          "sha256"      => bundle_sha256,
-          "version"     => bundle_version,
-        )
-
-        system_command "/bin/mkdir", args: ["-p", store], sudo: true
-        system_command "/usr/bin/ditto", args: [source, store/"VPhone.bundle"], sudo: true
-        system_command "/bin/cp", args: [receipt, store/"receipt.json"], sudo: true
-        system_command "/usr/sbin/chown", args: ["-R", "root:wheel", store], sudo: true
-      ensure
-        FileUtils.rm_r [archive, extracted].select(&:exist?)
-      end
-    end
-
-    system_command "/usr/bin/defaults",
-                   args: ["write", "com.vphone.launchpad", "VPhoneLaunchpadActiveBundleVersion", bundle_version]
-  rescue => e
-    opoo "Could not install VPhone.bundle into Launchpad (#{e.message.lines.first&.strip}); " \
-         "install it from Core Bundle in the window instead."
+    run "/bin/sh",
+        args:           ["-ec", <<~SH, "sh", "{{version}}"],
+          version="${1#*,}"
+          [ -d "/Library/Application Support/vphone-launchpad/Bundles/$version" ] || exit 0
+          /usr/bin/defaults write com.vphone.launchpad VPhoneLaunchpadActiveBundleVersion "$version"
+        SH
+        must_succeed:   false,
+        writable_paths: ["~/Library/Preferences/com.vphone.launchpad.plist"]
   end
 
   uninstall launchctl: "com.vphone.launchpad.helper",
